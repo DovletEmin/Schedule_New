@@ -1,0 +1,107 @@
+<div class="row mt-4">
+    <div class="col-12">
+        {% load timetable_filters %}
+        <div class="card shadow-sm course-card">
+            <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+                <div>
+                    <h5 class="mb-0">
+                        {% if week_number %}
+                            {{ week_number }} - Hepde
+                        {% elif selected_week_obj %}
+                            {{ selected_week_obj.number }} - Hepde
+                        {% else %}
+                            {% if course_data.week_numbers|length == 1 %}
+                                {{ course_data.week_numbers.0 }} - Hepde
+                            {% else %}
+                                {{ course_data.week_numbers|join:", " }} Hepdeler
+                            {% endif %}
+                        {% endif %}
+                    </h5>
+                </div>
+                <div class="flex-grow-1 text-center">
+                    <h5 class="mb-0">
+                        <strong>{{ course_data.course.faculty.name }} - {{ course_data.course.number }} Kurs</strong>
+                    </h5>
+                </div>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="timetable-grid-vertical">
+                        <thead>
+                            <tr>
+                                <th class="header-empty" colspan="2"></th>
+                                {% for subgroup in course_data.subgroups %}
+                                    <th class="group-header" colspan="2">{{ subgroup.group.name }} - {{ subgroup.name }}</th>
+                                {% endfor %}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for day in days %}
+                                {% if day.id in course_data.timetable %}
+                                    {% with day_data=course_data.timetable|get_item:day.id %}
+                                    {% for lesson_num in course_data.lesson_numbers %}
+                                        {% if lesson_num.number in day_data.lessons %}
+                                            {% with entries=day_data.lessons|get_item:lesson_num.number %}
+                                            <tr class="lesson-row{% if forloop.first %} new-day{% endif %}">
+                                                {% if forloop.first %}
+                                                <td class="day-cell" rowspan="{{ day_data.lesson_count }}">
+                                                    <div class="day-vertical">{{ day_data.day_name }}</div>
+                                                </td>
+                                                {% endif %}
+                                                <td class="lesson-number-cell">
+                                                    <div><strong>{{ lesson_num.number }}</strong></div>
+                                                    {% if lesson_num.start_time and lesson_num.end_time %}
+                                                    <div class="lesson-time">
+                                                        {{ lesson_num.start_time|time:"H:i" }}<br>
+                                                        {{ lesson_num.end_time|time:"H:i" }}
+                                                    </div>
+                                                    {% endif %}
+                                                </td>
+                                                {% if entries.is_lecture %}
+                                                    {% with gc=course_data.group_colspan %}
+                                                        {% if entries.subject %}
+                                                            {# subject spans all columns except final room column #}
+                                                            <td class="subject-cell lecture-subject" colspan="{{ gc|add:"-1" }}">
+                                                                <div class="subject-name">{{ entries.subject }}</div>
+                                                                <div class="teacher-names">{% if entries.teacher %}{{ entries.teacher }}{% endif %}</div>
+                                                            </td>
+                                                            {# single narrow room cell on the far right #}
+                                                            <td class="room-cell lecture-room" colspan="1">
+                                                                <div class="room-info">{{ entries.room|default:"-" }}</div>
+                                                            </td>
+                                                        {% else %}
+                                                            <td class="subject-cell empty-cell" colspan="{{ gc|add:"-1" }}"><div class="empty-label">-</div></td>
+                                                            <td class="room-cell empty-cell" colspan="1"><div class="empty-label">-</div></td>
+                                                        {% endif %}
+                                                    {% endwith %}
+                                                {% else %}
+                                                    {# Render cells for each subgroup in the course, using the prepared map #}
+                                                    {% for subgroup in course_data.subgroups %}
+                                                        {% with subgroup_lesson=entries.subgroup_lessons_map|get_item:subgroup.id %}
+                                                            {% if subgroup_lesson %}
+                                                                <td class="subject-cell practice-subject">
+                                                                    <div class="subject-name">{{ subgroup_lesson.subject }}</div>
+                                                                    <div class="teacher-names">{% if subgroup_lesson.teacher %}{{ subgroup_lesson.teacher }}{% endif %}</div>
+                                                                </td>
+                                                                <td class="room-cell practice-room">{{ subgroup_lesson.room|default:"-" }}</td>
+                                                            {% else %}
+                                                                <td class="subject-cell empty-cell"><div class="empty-label">-</div></td>
+                                                                <td class="room-cell empty-cell"><div class="empty-label">-</div></td>
+                                                            {% endif %}
+                                                        {% endwith %}
+                                                    {% endfor %}
+                                                {% endif %}
+                                            </tr>
+                                            {% endwith %}
+                                        {% endif %}
+                                    {% endfor %}
+                                    {% endwith %}
+                                {% endif %}
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

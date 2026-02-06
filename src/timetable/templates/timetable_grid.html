@@ -1,0 +1,158 @@
+{% extends 'base.html' %}
+{% load timetable_filters %}
+
+{% block content %}
+<style>
+  .timetable-filter-block {
+    min-width: 150px;
+    max-width: 180px;
+    flex: 1 1 150px;
+  }
+  .timetable-filter-block label {
+    font-weight: 500;
+  }
+  .timetable-filter-row {
+    gap: 18px;
+  }
+</style>
+<div class="row justify-content-center mb-3">
+    <div class="col-lg-11">
+        <div class="card shadow-sm">
+            <div class="card-body py-4">
+                <form method="get" id="filterForm">
+                    <div class="d-flex flex-wrap justify-content-center align-items-end timetable-filter-row">
+                        <div class="timetable-filter-block">
+                            <label for="faculty" class="form-label form-label-sm">Fakultet</label>
+                            <select name="faculty" id="faculty" class="form-select form-select-sm">
+                                <option value="">Ähli</option>
+                                {% for faculty in faculties %}
+                                    <option value="{{ faculty.id }}" {% if faculty.id|stringformat:"s" == selected_faculty %}selected{% endif %}>{{ faculty.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="timetable-filter-block">
+                            <label for="course" class="form-label form-label-sm">Kurs</label>
+                            <select name="course" id="course" class="form-select form-select-sm" {% if not selected_faculty %}disabled{% endif %}>
+                                <option value="">Ähli</option>
+                                {% if selected_faculty %}
+                                    {% for course in courses %}
+                                        <option value="{{ course.id }}" {% if course.id|stringformat:"s" == selected_course %}selected{% endif %}>{{ course.number }} Kurs</option>
+                                    {% endfor %}
+                                {% endif %}
+                            </select>
+                        </div>
+                        <div class="timetable-filter-block">
+                            <label for="group" class="form-label form-label-sm">Topar</label>
+                            <select name="group" id="group" class="form-select form-select-sm" {% if not selected_course %}disabled{% endif %}>
+                                <option value="">Ähli</option>
+                                {% if selected_course %}
+                                    {% for group in filter_groups %}
+                                        <option value="{{ group.id }}" {% if group.id|stringformat:"s" == selected_group %}selected{% endif %}>{{ group.name }}</option>
+                                    {% endfor %}
+                                {% endif %}
+                            </select>
+                        </div>
+                        <div class="timetable-filter-block">
+                            <label for="teacher" class="form-label form-label-sm">Mugallym</label>
+                            <select name="teacher" id="teacher" class="form-select form-select-sm">
+                                <option value="">Ähli</option>
+                                {% for teacher in teachers %}
+                                    <option value="{{ teacher.id }}" {% if teacher.id|stringformat:"s" == selected_teacher %}selected{% endif %}>{{ teacher.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="timetable-filter-block">
+                            <label for="week" class="form-label form-label-sm">Hepde</label>
+                            <select name="week" id="week" class="form-select form-select-sm">
+                                <option value="" {% if not selected_week or selected_week == "ahli" %}selected{% endif %}>Ähli</option>
+                                {% for week in weeks %}
+                                    <option value="{{ week.id }}" {% if week.id|stringformat:"s" == selected_week %}selected{% endif %}>{{ week.number }} Hepde</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="timetable-filter-block">
+                            <label for="day" class="form-label form-label-sm">Gün</label>
+                            <select name="day" id="day" class="form-select form-select-sm">
+                                <option value="">Ähli</option>
+                                {% for day in days %}
+                                    <option value="{{ day.id }}" {% if day.id|stringformat:"s" == selected_day %}selected{% endif %}>{{ day.get_number_display }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="timetable-filter-block d-flex align-items-end" style="min-width: 150px;">
+                            <a href="{% url 'timetable_grid' %}" class="btn btn-secondary btn-sm w-100"><i class="bi bi-arrow-counterclockwise"></i> Arassala</a>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if week1_courses_data or week2_courses_data or courses_data %}
+    {% if week1_courses_data or week2_courses_data %}
+        {% if week1_courses_data %}
+            <!-- <h3 class="mt-4">1-nji hepde</h3> -->
+            {% for course_data in week1_courses_data %}
+                {% include "timetable_grid_course_block.html" with course_data=course_data days=days selected_week_obj=None week_number=1 %}
+            {% endfor %}
+        {% endif %}
+        {% if week2_courses_data %}
+            <!-- <h3 class="mt-4">2-nji hepde</h3> -->
+            {% for course_data in week2_courses_data %}
+                {% include "timetable_grid_course_block.html" with course_data=course_data days=days selected_week_obj=None week_number=2 %}
+            {% endfor %}
+        {% endif %}
+    {% else %}
+        {% for course_data in courses_data %}
+            {% include "timetable_grid_course_block.html" with course_data=course_data days=days selected_week_obj=selected_week_obj week_number=None %}
+        {% endfor %}
+    {% endif %}
+{% else %}
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="alert alert-info" role="alert">
+            <i class="bi bi-info-circle"></i> 
+            Maglumat tapylmady.
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Автоматическая фильтрация при изменении любого фильтра
+    const filterSelects = ['faculty', 'course', 'group', 'subgroup', 'teacher', 'week', 'day'];
+    filterSelects.forEach(function(selectId) {
+        const element = document.getElementById(selectId);
+        if (element) {
+            element.addEventListener('change', function() {
+                // Clear course and group selection when faculty changes
+                if (selectId === 'faculty') {
+                    const courseSelect = document.getElementById('course');
+                    if (courseSelect) courseSelect.value = '';
+                    const groupSelect = document.getElementById('group');
+                    if (groupSelect) groupSelect.value = '';
+                    const subgroupSelect = document.getElementById('subgroup');
+                    if (subgroupSelect) subgroupSelect.value = '';
+                }
+                // Clear group and subgroup selection when course changes
+                if (selectId === 'course') {
+                    const groupSelect = document.getElementById('group');
+                    if (groupSelect) groupSelect.value = '';
+                    const subgroupSelect = document.getElementById('subgroup');
+                    if (subgroupSelect) subgroupSelect.value = '';
+                }
+                // Clear subgroup selection when group changes
+                if (selectId === 'group') {
+                    const subgroupSelect = document.getElementById('subgroup');
+                    if (subgroupSelect) subgroupSelect.value = '';
+                }
+                document.getElementById('filterForm').submit();
+            });
+        }
+    });
+</script>
+{% endblock %}

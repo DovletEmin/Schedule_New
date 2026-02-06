@@ -1,0 +1,5 @@
+{% extends "base.html" %}
+{% block content %}
+    <h2>{{ announcement.title }}</h2>
+    <iframe src="{% url 'announcement-file-view' announcement.pk %}" width="100%" height="800px" style="border:none;"></iframe>
+{% endblock %}
