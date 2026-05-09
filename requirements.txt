@@ -4,7 +4,7 @@ colorama==0.4.6
 Django==5.2.8
 django-cors-headers==4.9.0
 django-filter==25.2
-django-smart-selects==1.6.0
+django-smart-selects==1.7.2
 djangorestframework==3.16.1
 drf-spectacular==0.29.0
 drf-spectacular-sidecar==2025.10.1
@@ -20,6 +20,7 @@ pytest-django==4.11.1
 PyYAML==6.0.3
 referencing==0.37.0
 rpds-py==0.28.0
+setuptools==80.9.0
 sqlparse==0.5.3
 typing_extensions==4.15.0
 tzdata==2025.2

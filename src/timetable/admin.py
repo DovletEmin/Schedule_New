@@ -19,6 +19,25 @@ from django.contrib.admin import AdminSite
 from smart_selects.db_fields import ChainedForeignKey
 
 
+DEFAULT_ADMIN_GET_APP_LIST = AdminSite.get_app_list
+
+
+TIMETABLE_ADMIN_MODEL_ORDER = {
+    "Fakultet": 1,
+    "Kurs": 2,
+    "Topar": 3,
+    "Podtopar": 4,
+    "Mugallym": 5,
+    "Sapaklaryň ady": 6,
+    "Sapak görnüşi": 7,
+    "Sapak nomer": 8,
+    "Hepde": 9,
+    "Gün": 10,
+    "Sapak tertibi": 11,
+    "Bildirişler": 12,
+}
+
+
 # Inline для подгрупп внутри группы
 class SubgroupInline(admin.TabularInline):
     model = Subgroup
@@ -239,31 +258,21 @@ admin.site.site_title = "OKUW DERSLERINIŇ TERTIBI"
 # Переопределение get_app_list для сортировки моделей
 
 
-def custom_get_app_list(self, request):
-    app_dict = self._build_app_dict(request)
-    # Сортировка моделей внутри приложения timetable
-    for app in app_dict.values():
-        if app["app_label"] == "timetable":
-            order = [
-                "TimetableEntry",
-                "Group",
-                "Subgroup",
-                "Course",
-                "Faculty",
-                "Teacher",
-                "Subject",
-                "LessonType",
-                "LessonNumber",
-                "Week",
-                "Day",
-                "Announcement",
-            ]
-            app["models"].sort(
-                key=lambda m: order.index(m["object_name"])
-                if m["object_name"] in order
-                else 100
+def custom_get_app_list(self, request, app_label=None):
+    app_list = DEFAULT_ADMIN_GET_APP_LIST(self, request, app_label=app_label)
+
+    for app in app_list:
+        if app["app_label"] != "timetable":
+            continue
+
+        app["models"].sort(
+            key=lambda model: (
+                TIMETABLE_ADMIN_MODEL_ORDER.get(model["name"], 999),
+                model["name"],
             )
-    return sorted(app_dict.values(), key=lambda x: x["name"].lower())
+        )
+
+    return app_list
 
 
 AdminSite.get_app_list = custom_get_app_list
